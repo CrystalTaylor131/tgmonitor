@@ -14,10 +14,16 @@ bot.onText(/\/start/, (msg) => {
   const opts = {
     reply_markup: {
       inline_keyboard: [
-        [{
-          text: '点击显示用户名',
-          callback_data: 'show_username'
-        }]
+        [
+          {
+            text: '点击显示用户名',
+            callback_data: 'show_username'
+          },
+          {
+            text: '更多信息',
+            callback_data: 'more_info'
+          }
+        ]
       ]
     }
   };
@@ -52,6 +58,22 @@ bot.on('callback_query', (callbackQuery) => {
       text: displayInfo,
       show_alert: true
     });
+  } else if (data === 'more_info') {
+    const user = callbackQuery.from;
+    const chatInfo = msg.chat;
+    
+    let moreInfo = `聊天信息：\n`;
+    moreInfo += `聊天类型：${chatInfo.type}\n`;
+    if (chatInfo.title) {
+      moreInfo += `聊天标题：${chatInfo.title}\n`;
+    }
+    moreInfo += `聊天ID：${chatInfo.id}\n`;
+    moreInfo += `语言代码：${user.language_code || '未设置'}`;
+    
+    bot.answerCallbackQuery(callbackQuery.id, {
+      text: moreInfo,
+      show_alert: true
+    });
   }
 });
 
@@ -68,10 +90,16 @@ bot.on('message', (msg) => {
   const opts = {
     reply_markup: {
       inline_keyboard: [
-        [{
-          text: '点击显示用户名',
-          callback_data: 'show_username'
-        }]
+        [
+          {
+            text: '点击显示用户名',
+            callback_data: 'show_username'
+          },
+          {
+            text: '更多信息',
+            callback_data: 'more_info'
+          }
+        ]
       ]
     }
   };
