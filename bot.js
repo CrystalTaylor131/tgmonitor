@@ -1,7 +1,28 @@
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config');
+const axios = require('axios');
 
 const bot = new TelegramBot(config.BOT_TOKEN, { polling: true });
+
+async function getBTCPrice() {
+  try {
+    const response = await axios.get('https://api.coindesk.com/v1/bpi/currentprice.json');
+    const data = response.data;
+    const priceUSD = data.bpi.USD.rate;
+    const lastUpdated = data.time.updated;
+    return {
+      success: true,
+      price: priceUSD,
+      updated: lastUpdated
+    };
+  } catch (error) {
+    console.error('Error fetching BTC price:', error);
+    return {
+      success: false,
+      error: '获取价格失败'
+    };
+  }
+}
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
@@ -23,6 +44,12 @@ bot.onText(/\/start/, (msg) => {
             text: '更多信息',
             callback_data: 'more_info'
           }
+        ],
+        [
+          {
+            text: '💰 BTC价格',
+            callback_data: 'btc_price'
+          }
         ]
       ]
     }
@@ -31,7 +58,7 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(chatId, '欢迎使用用户名显示机器人！点击下方按钮查看您的用户名：', opts);
 });
 
-bot.on('callback_query', (callbackQuery) => {
+bot.on('callback_query', async (callbackQuery) => {
   const msg = callbackQuery.message;
   const data = callbackQuery.data;
   const chatId = msg.chat.id;
@@ -74,6 +101,20 @@ bot.on('callback_query', (callbackQuery) => {
       text: moreInfo,
       show_alert: true
     });
+  } else if (data === 'btc_price') {
+    bot.answerCallbackQuery(callbackQuery.id, {
+      text: '正在获取BTC价格...',
+      show_alert: false
+    });
+    
+    const priceData = await getBTCPrice();
+    
+    if (priceData.success) {
+      const priceInfo = `💰 比特币当前价格\n\n💵 USD: ${priceData.price}\n📅 更新时间: ${priceData.updated}`;
+      bot.sendMessage(chatId, priceInfo);
+    } else {
+      bot.sendMessage(chatId, `❌ ${priceData.error}`);
+    }
   }
 });
 
@@ -98,6 +139,12 @@ bot.on('message', (msg) => {
           {
             text: '更多信息',
             callback_data: 'more_info'
+          }
+        ],
+        [
+          {
+            text: '💰 BTC价格',
+            callback_data: 'btc_price'
           }
         ]
       ]
