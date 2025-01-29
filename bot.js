@@ -24,6 +24,26 @@ async function getBTCPrice() {
   }
 }
 
+async function getETHPrice() {
+  try {
+    const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&include_last_updated_at=true');
+    const data = response.data;
+    const priceUSD = data.ethereum.usd;
+    const lastUpdated = new Date(data.ethereum.last_updated_at * 1000).toLocaleString();
+    return {
+      success: true,
+      price: `$${priceUSD.toLocaleString()}`,
+      updated: lastUpdated
+    };
+  } catch (error) {
+    console.error('Error fetching ETH price:', error);
+    return {
+      success: false,
+      error: '获取价格失败'
+    };
+  }
+}
+
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const firstName = msg.from.first_name || '';
@@ -49,6 +69,10 @@ bot.onText(/\/start/, (msg) => {
           {
             text: '💰 BTC价格',
             callback_data: 'btc_price'
+          },
+          {
+            text: '💎 ETH价格',
+            callback_data: 'eth_price'
           }
         ]
       ]
@@ -115,6 +139,20 @@ bot.on('callback_query', async (callbackQuery) => {
     } else {
       bot.sendMessage(chatId, `❌ ${priceData.error}`);
     }
+  } else if (data === 'eth_price') {
+    bot.answerCallbackQuery(callbackQuery.id, {
+      text: '正在获取ETH价格...',
+      show_alert: false
+    });
+    
+    const priceData = await getETHPrice();
+    
+    if (priceData.success) {
+      const priceInfo = `💎 以太坊当前价格\n\n💵 USD: ${priceData.price}\n📅 更新时间: ${priceData.updated}`;
+      bot.sendMessage(chatId, priceInfo);
+    } else {
+      bot.sendMessage(chatId, `❌ ${priceData.error}`);
+    }
   }
 });
 
@@ -145,6 +183,10 @@ bot.on('message', (msg) => {
           {
             text: '💰 BTC价格',
             callback_data: 'btc_price'
+          },
+          {
+            text: '💎 ETH价格',
+            callback_data: 'eth_price'
           }
         ]
       ]
